@@ -1,8 +1,12 @@
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
-const authRouter = require("./auth/auth-router.js");
-const usersRouter = require("./users/users-router.js");
+const session = require("express-session");
+const KnexSessionStore = require("connect-session-knex")(session);
+
+const dbConfig = require("./database/dbConfig");
+const authRouter = require("./auth/auth-router");
+const usersRouter = require("./users/users-router");
 
 const server = express();
 const port = process.env.PORT || 5000;
@@ -10,6 +14,22 @@ const port = process.env.PORT || 5000;
 server.use(helmet());
 server.use(cors());
 server.use(express.json());
+server.use(
+  session({
+    resave: false,
+    saveUninitialized: false,
+    secret: "keep it secret, keep it safe!",
+    cookie: {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      secure: false // in prod this should be true so the cookie header is encrypted
+    },
+    store: new KnexSessionStore({
+      knex: dbConfig,
+      createtable: true
+    })
+  })
+);
 
 server.use("/auth", authRouter);
 server.use("/users", usersRouter);
